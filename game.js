@@ -26,6 +26,9 @@ imgPlayer.src = "img/player.png";
 var imgEnemy = new Image ();
 imgEnemy.src = "img/enemy.png";
 
+var imgBoss = new Image ();
+imgBoss.src = "img/boss.png";
+
 var imgObstacle = new Image ();
 imgObstacle.src = "img/obstacle.png";
 
@@ -41,17 +44,29 @@ var obstacles = [];
 var bullets = [];
 
 var isPlaying;
+var isMenu = true;
+var isControlButtons;
 
-var k = 5;
+var moveToX = -1;
+var moveToY = -1;
+
+var isBoss = false;
+var bossExist = false;
+
+var k = 10;
 var score = 0;
 var time = 0;
+
+var isWin = false;
+var isLose = false;
+var loseWinTime = -1;
 
 var timeDeath;
 var explodeX;
 var explodeY;
 
 var spawnTime = 300;
-var spawnEnemiesAmout = 4;
+var spawnEnemiesAmout = 5;
 var spawnObstaclesAmout = 2;
 
 
@@ -63,12 +78,10 @@ function init() {
 	context.width = gameWidth;
 	context.height = gameHeight;
 
-	player = new Player ();
+	document.addEventListener("click", checkClick);
 
+	drawMenu();
 	startLoop();
-
-	document.addEventListener("keydown", checkKeyDown);
-	document.addEventListener("keyup", checkKeyUp);
 }
 
 function spawnCreatures (enemiesCount, obstaclesCount) {
@@ -84,12 +97,20 @@ function spawnCreatures (enemiesCount, obstaclesCount) {
 }
 
 function loop() {
-	if(isPlaying){
-		spawnCreatures(1 + Math.random() * spawnEnemiesAmout, 1 + Math.random() * spawnObstaclesAmout);
+	if(isPlaying && !isMenu){
+		if(!bossExist) spawnCreatures(1 + Math.random() * spawnEnemiesAmout, 1 + Math.random() * spawnObstaclesAmout);
 		draw();
 		update();
-		requestAnimFrame(loop);
 	}
+	if((isLose || isWin) && time > loseWinTime + 180){
+		drawMenu();
+		enemies = [];
+		obstacles = [];
+		bullets = [];
+		isMenu = true;
+		player = new Player();
+	}
+	requestAnimFrame(loop);
 }
 
 function startLoop() {
@@ -99,20 +120,24 @@ function startLoop() {
 
 function stopLoop() {
 	isPlaying = false;
+	drawPauseText();
 }
 
 function draw() {
 	drawBackground();
+	drawPause();
+
 	player.draw();
 	for (i in bullets) bullets[i].draw();
 	for (i in enemies) enemies[i].draw();
 	for (i in obstacles) obstacles[i].draw();
 	if (time < timeDeath + 20) 
 		drawExplosion();
-	context.fillStyle = "#00F";
-	context.font = "italic 36pt Arial";
-	context.textBaseline = "top";
-	context.fillText("Score: " + score, gameWidth / 2, 10);
+	if(isLose && time < loseWinTime + 180)
+		drawLose();
+	if(isWin && time < loseWinTime + 180)
+		drawWin();
+	if (score >= 0) drawScore();
 }
 
 function update() {
@@ -122,6 +147,13 @@ function update() {
 	for (i in obstacles) obstacles[i].update();
 	time++;
 	if(time % 60 == 0) score += 10;
+	if(score > 1000) {
+		score = -100000;
+		enemies = [];
+		obstacles = [];
+		bossExist = true;
+		enemies[0] = new Boss ()	
+	}
 }
 
 
@@ -139,7 +171,7 @@ function Player() {
 	this.isLeft = false;
 	this.isRight = false;
 
-	this.speed = 7;
+	this.speed = 6;
 
 	this.isFire = false;
 
@@ -150,7 +182,7 @@ function Player() {
 
 Player.prototype.draw = function () {
 	context.drawImage (imgPlayer, this.x, this.y, this.width, this.height);
-	context.fillStyle = '#FF0000';
+	context.fillStyle = '#00E600';
 	for(var i = 0; i < this.health; i++){
 		context.fillRect(10 + 100*i, 10, 100, 36);
 	}
@@ -165,6 +197,7 @@ Player.prototype.update = function () {
 	this.checkCollusions();
 
 	this.movement();
+	if(this.health == 0) this.destroy();
 }
 
 Player.prototype.borders = function () {
@@ -193,7 +226,7 @@ Player.prototype.checkCollusions = function () {
 			this.health--;
 			this.isInvulnerable = true;
 			this.invulnerableTime = 300;
-			enemies[i].destroy();
+			enemies[i].health -= 3;
 		}
 	}
 	for(i in obstacles){
@@ -211,17 +244,36 @@ Player.prototype.checkCollusions = function () {
 }
 
 Player.prototype.movement = function () {
-	if(this.isUp)
+	if(this.isUp || (moveToY != -1 &&
+	 this.y + this.height / 2 > moveToY &&
+	 !isControlButtons))
 		this.y -= this.speed;
-	if(this.isDown)
+	if(this.isDown || (moveToY != -1 && 
+		this.y + this.height / 2 < moveToY &&
+	 !isControlButtons))
 		this.y += this.speed;
-	if(this.isLeft)
+	if(this.isLeft || (moveToX != -1 &&
+	 this.x + this.width / 2 > moveToX &&
+	 !isControlButtons))
 		this.x -= this.speed;
-	if(this.isRight)
+	if(this.isRight || (moveToX != -1 &&
+		this.x + this.width / 2 < moveToX &&
+	 !isControlButtons))
 		this.x += this.speed;
-	if(this.isFire && time % 30 == 0) 
+	if((this.isFire || !isControlButtons) && time % 20 == 0) 
 		bullets[bullets.length] = new Bullet();
 }
+
+Player.prototype.destroy = function () {
+	timeDeath = time;
+	loseWinTime = time;
+	isLose = true;
+	explodeX = this.x;
+	explodeY = this.y;
+	this.health = -1;
+}
+
+
 
 function Bullet () {
 	this.width = 30;
@@ -304,11 +356,47 @@ Enemy.prototype.destroy = function () {
 
 
 
+function Boss() {
+	this.width = 300;
+	this.height = 500;
+	this.x = gameWidth;
+	this.y = gameHeight / 2 - this.height / 2;
+	this.speed = 3;
+	this.health = 30;
+}
+
+Boss.prototype.draw = function () {
+	context.drawImage (imgBoss, this.x, this.y, this.width, this.height);
+	context.fillStyle = '#FF0000';
+	for(var i = 0; i < this.health; i++){
+		context.fillRect(10 + 30*i, gameHeight - 35, 30, 30);
+	}
+}
+
+Boss.prototype.update = function () {
+	if(this.x > gameWidth / 2) this.x -= this.speed;
+	if(this.health == 0){
+		this.destroy();
+	}
+}
+
+Boss.prototype.destroy = function () {
+	timeDeath = time;
+	loseWinTime = time;
+	explodeX = this.x;
+	explodeY = this.y;
+	isBoss = true;
+	enemies.splice(enemies.indexOf(this), 1);
+	isWin = true;
+}
+
+
+
 // Класс Obstacle
 function Obstacle() {
 	this.width = 100;
 	this.height = 100;
-	this.x = gameWidth + this.width + Math.random() * this.width * k;
+	this.x = gameWidth + this.width + Math.random() * this.width * k / 2;
 	this.y = Math.random() * (gameHeight - this.height);
 	this.speed = 3;
 	this.health = 5;
@@ -333,6 +421,59 @@ Obstacle.prototype.destroy = function () {
 }
 
 
+
+function checkClick(e){
+	if(e.pageX - canvas.offsetLeft >= gameWidth - 60 &&
+	 	e.pageX - canvas.offsetLeft <= gameWidth - 10 &&
+		e.pageY - canvas.offsetTop >= 10 &&
+		e.pageY - canvas.offsetTop <= 46){
+		if(isPlaying)
+			stopLoop();
+		else
+			isPlaying = true;
+	}
+	if(isMenu && e.pageX - canvas.offsetLeft >= gameWidth / 6 &&
+	 	e.pageX - canvas.offsetLeft <= gameWidth / 6 + 300 &&
+		e.pageY - canvas.offsetTop >= gameHeight / 2 &&
+		e.pageY - canvas.offsetTop <= gameHeight / 2 + 100){
+		document.addEventListener("keydown", checkKeyDown);
+		document.addEventListener("keyup", checkKeyUp);
+		isControlButtons = true;
+		isMenu = false;
+		isLose = false;
+		isWin = false;
+		isBoss = false;
+		bossExist = false;
+		score = 0;
+		isPlaying = true;
+		player = new Player();
+	}
+
+	if(isMenu && e.pageX - canvas.offsetLeft >= gameWidth / 2 &&
+	 	e.pageX - canvas.offsetLeft <= gameWidth / 2 + 300 &&
+		e.pageY - canvas.offsetTop >= gameHeight / 2 &&
+		e.pageY - canvas.offsetTop <= gameHeight / 2 + 100){
+		isControlButtons = false;
+		isMenu = false;
+		isLose = false;
+		isWin = false;
+		isBoss = false;
+		bossExist = false;
+		score = 0;
+		isPlaying = true;
+		player = new Player();
+	}
+		if(!isControlButtons){
+		moveToX = e.pageX - canvas.offsetLeft;
+		moveToY = e.pageY - canvas.offsetTop;
+		if(e.pageX - canvas.offsetLeft < 0) moveToX = 0;
+		if(e.pageY - canvas.offsetTop < 0) moveToY = 0;
+		if(e.pageX - canvas.offsetLeft > gameWidth / 2 )
+			moveToX = gameWidth / 2;
+		if(e.pageY - canvas.offsetTop> gameHeight - player.height)
+			moveToY = gameHeight - player.height;
+	}
+}
 
 function checkKeyDown (e) {
 	switch(e.code){
@@ -403,7 +544,60 @@ function clear() {
 }
 
 function drawExplosion () {
-	context.drawImage(imgExplosion, explodeX, explodeY, 100, 100);
+	if(isBoss)
+		context.drawImage(imgExplosion, explodeX, explodeY, 400, 400);
+	else
+		context.drawImage(imgExplosion, explodeX, explodeY, 100, 100);
+}
+
+function drawScore () {
+	context.fillStyle = "#00F";
+	context.font = "italic 36pt Arial";
+	context.textBaseline = "top";
+	context.fillText("Score: " + score, gameWidth / 2, 10);
+}
+
+function drawPause () {
+	context.fillStyle = '#FFFFFF';
+	context.fillRect(gameWidth - 60, 10, 20, 36);
+	context.fillRect(gameWidth - 30, 10, 20, 36);
+}
+
+function drawPauseText () {
+	context.fillStyle = "#FFFFFF";
+	context.font = "bold 128pt Arial";
+	context.textBaseline = "top";
+	context.fillText("Pause", gameWidth / 4, gameHeight / 3);
+}
+
+function drawMenu () {
+	context.fillStyle = '#808080';
+	context.fillRect(gameWidth / 10, gameHeight / 10, gameWidth / 10 * 8, gameHeight / 10 * 8);
+	context.fillStyle = "#FFFFFF";
+	context.font = "bold 72pt Arial";
+	context.textBaseline = "top";
+	context.fillText("Select control:", gameWidth / 5 , gameHeight / 5 );
+	context.fillStyle = '#000000';
+	context.fillRect(gameWidth / 6, gameHeight / 2, 300 , 100);
+	context.fillRect(gameWidth / 2, gameHeight / 2, 300 , 100);
+	context.fillStyle = "#FFFFFF";
+	context.font = "bold 48pt Arial";
+	context.fillText("Buttons", gameWidth / 6 + 20, gameHeight / 2 + 15);
+	context.fillText("Clicks", gameWidth / 2 + 20, gameHeight / 2 + 15);
+}
+
+function drawLose () {
+	context.fillStyle = "#FFFFFF";
+	context.font = "bold 128pt Arial";
+	context.textBaseline = "top";
+	context.fillText("You lose", gameWidth / 4, gameHeight / 3);
+}
+
+function drawWin () {
+	context.fillStyle = "#FFFFFF";
+	context.font = "bold 128pt Arial";
+	context.textBaseline = "top";
+	context.fillText("You win", gameWidth / 4, gameHeight / 3);
 }
 
 function drawBackground() {
