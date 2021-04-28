@@ -2,8 +2,18 @@ body {
 	background-color: #1e1e24;
 }
 
+h1, h2 {
+	margin: 0 auto;
+}
+
 #canvas {
 	display: block;
 	margin: auto;
 }
 
+.text {
+	display: block;
+	text-align: center;
+	margin: auto;
+	color: white;
+}
