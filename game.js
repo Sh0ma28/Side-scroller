@@ -1,11 +1,13 @@
 // A cross-browser requestAnimationFrame
-var requestAnimFrame = (function(){
-    return window.requestAnimationFrame       ||
-        window.webkitRequestAnimationFrame ||
-        window.mozRequestAnimationFrame    ||
-        window.oRequestAnimationFrame      ||
-        window.msRequestAnimationFrame     ||
-        function(callback){
+var requestAnimFrame = (function()
+{
+    return window.requestAnimationFrame    ||
+     window.webkitRequestAnimationFrame ||
+     window.mozRequestAnimationFrame    ||
+     window.oRequestAnimationFrame      ||
+     window.msRequestAnimationFrame     ||
+   	 function(callback)
+        {
             window.setTimeout(callback, 1000 / 60);
         };
 })();
@@ -20,22 +22,22 @@ var context;
 var gameWidth = 1000;
 var gameHeight = 700;
 
-var imgPlayer = new Image ();
+var imgPlayer = new Image();
 imgPlayer.src = "img/player.png";
 
-var imgEnemy = new Image ();
+var imgEnemy = new Image();
 imgEnemy.src = "img/enemy.png";
 
-var imgBoss = new Image ();
+var imgBoss = new Image();
 imgBoss.src = "img/boss.png";
 
-var imgObstacle = new Image ();
+var imgObstacle = new Image();
 imgObstacle.src = "img/obstacle.png";
 
-var imgExplosion = new Image ();
+var imgExplosion = new Image();
 imgExplosion.src = "img/explosion.png"
 
-var background = new Image ();
+var background = new Image();
 background.src = "img/background.png";
 
 var player;
@@ -72,7 +74,8 @@ var spawnObstaclesAmout = 2;
 
 
 
-function init() {
+function init()
+{
 	canvas = document.getElementById("canvas");
 	context = canvas.getContext("2d");
 
@@ -85,25 +88,27 @@ function init() {
 	loop();
 }
 
-function spawnCreatures (enemiesCount, obstaclesCount) {
+function spawnCreatures(enemiesCount, obstaclesCount)
+{
 	if(enemies.length == 0 &&
 		obstacles.length == 0){
-		for(var i = 0; i < enemiesCount; i++){
+		for(var i = 0; i < enemiesCount; i++)
 			enemies[i] = new Enemy ();
-		}
-		for(var i = 0; i < obstaclesCount; i++){
+		for(var i = 0; i < obstaclesCount; i++)
 			obstacles[i] = new Obstacle ();
-		}
 	}
 }
 
-function loop() {
-	if(isPlaying && !isMenu){
+function loop()
+{
+	if(isPlaying && !isMenu)
+	{
 		if(!isBoss) spawnCreatures(1 + Math.random() * spawnEnemiesAmout, 1 + Math.random() * spawnObstaclesAmout);
 		draw();
 		update();
 	}
-	if((isLose || isWin) && time > timeMoment + 180){
+	if((isLose || isWin) && time > timeMoment + 180)
+	{
 		drawMenu();
 		enemies = [];
 		obstacles = [];
@@ -114,58 +119,65 @@ function loop() {
 	requestAnimFrame(loop);
 }
 
-function stopLoop() {
+function stopLoop()
+{
 	isPlaying = false;
 	drawPauseText();
 }
 
-function draw() {
+function draw()
+{
 	drawBackground();
 	drawPause();
 	if(player.isReload) drawReload();
 	else drawAmmo();
 
 	player.draw();
-	if(isBoss && !isWin){
+	if(isBoss && !isWin)
+	{
 		boss.draw();
-		for (i in bossBullets) bossBullets[i].draw();
+		for(i in bossBullets) bossBullets[i].draw();
 	}
-	for (i in bullets) bullets[i].draw();
-	for (i in enemies) enemies[i].draw();
-	for (i in obstacles) obstacles[i].draw();
-	if (time < timeDeath + 20) 
+	for(i in bullets) bullets[i].draw();
+	for(i in enemies) enemies[i].draw();
+	for(i in obstacles) obstacles[i].draw();
+	if(time < timeDeath + 20) 
 		drawExplosion();
 	if(isLose && time < timeMoment + 180)
 		drawLose();
 	if(isWin && time < timeMoment + 180)
 		drawWin();
-	if (score >= 0) drawScore();
+	if(score >= 0) drawScore();
 }
 
-function update() {
+function update()
+{
 	player.update();
-	if(isBoss && !isWin){
+	if(isBoss && !isWin)
+	{
 		boss.update();
-		for (i in bossBullets) bossBullets[i].update();
+		for(i in bossBullets) bossBullets[i].update();
 	}
-	for (i in bullets) bullets[i].update();
-	for (i in enemies) enemies[i].update();
-	for (i in obstacles) obstacles[i].update();
+	for(i in bullets) bullets[i].update();
+	for(i in enemies) enemies[i].update();
+	for(i in obstacles) obstacles[i].update();
 	time++;
 	if(time % 60 == 0) score += 10;
-	if(score > 1000 ) {
+	if(score > 1000 )
+	{
 		score = -100000;
 		enemies = [];
 		obstacles = [];
 		isBoss = true;
-		boss = new Boss ();	
+		boss = new Boss();	
 	}
 }
 
 
 
 // Класс Player
-function Player() {
+function Player()
+{
 	this.width = 100;
 	this.height = 100;
 
@@ -179,26 +191,29 @@ function Player() {
 	this.isRight = false;
 	this.speed = 6;
 
+	// стрельба
 	this.isFire = false;
 	this.isReload = false;
 	this.reloadTime = 180;
 	this.ammo = 15;
 
+	// здоровье
 	this.health = 4;
 	this.isInvulnerable = false;
 	this.invulnerableTime = 0;
 }
 
-Player.prototype.draw = function () {
+Player.prototype.draw = function()
+{
 	context.drawImage (imgPlayer, this.x, this.y, this.width, this.height);
 	context.fillStyle = '#00E600';
-	for(var i = 0; i < this.health; i++){
+	for(var i = 0; i < this.health; i++)
 		context.fillRect(10 + 100*i, 10, 100, 36);
-	}
 }
 
 
-Player.prototype.update = function () {
+Player.prototype.update = function()
+{
 	this.borders();
 
 	this.checkInvulnerable();
@@ -212,56 +227,66 @@ Player.prototype.update = function () {
 	if(this.health == 0) this.destroy();
 }
 
-Player.prototype.borders = function () {
+Player.prototype.borders = function()
+{
 	if(this.x < 0) this.x = 0;
 	if(this.y < 0) this.y = 0;
-	if(this.x > gameWidth / 2 )
+	if(this.x > gameWidth / 2)
 		this.x = gameWidth / 2;
 	if(this.y > gameHeight - this.height)
 		this.y = gameHeight - this.height;
 }
 
-Player.prototype.checkInvulnerable = function () {
+Player.prototype.checkInvulnerable = function()
+{
 	if(this.isInvulnerable)
 		this.invulnerableTime--;
 	if(this.invulnerableTime == 0)
 		this.isInvulnerable = false
 }
 
-Player.prototype.checkCollusions = function () {
-	for(i in enemies){
+Player.prototype.checkCollusions = function()
+{
+	for(i in enemies)
+	{
 		if(this.x + this.width > enemies[i].x &&
-		this.y + this.height > enemies[i].y &&
-		this.x < enemies[i].x + enemies[i].width &&
-		this.y < enemies[i].y + enemies[i].height &&
-		!this.isInvulnerable){
+		 this.y + this.height > enemies[i].y &&
+		 this.x < enemies[i].x + enemies[i].width &&
+		 this.y < enemies[i].y + enemies[i].height &&
+		 !this.isInvulnerable)
+		{
 			this.health--;
 			this.isInvulnerable = true;
 			this.invulnerableTime = 300;
 			enemies[i].health -= 3;
 		}
 	}
-	for(i in obstacles){
+
+	for(i in obstacles)
+	{
 		if(this.x + this.width > obstacles[i].x &&
-		this.y + this.height > obstacles[i].y &&
-		this.x < obstacles[i].x + obstacles[i].width &&
-		this.y < obstacles[i].y + obstacles[i].height &&
-		!this.isInvulnerable){
+		 this.y + this.height > obstacles[i].y &&
+		 this.x < obstacles[i].x + obstacles[i].width &&
+		 this.y < obstacles[i].y + obstacles[i].height &&
+		 !this.isInvulnerable)
+		{
 			this.health--;
 			this.isInvulnerable = true;
 			this.invulnerableTime = 300;
 			obstacles[i].destroy();
 		}
 	}
+
 }
 
-Player.prototype.movement = function () {
+Player.prototype.movement = function()
+{
 	if(this.isUp || (moveToY != -1 &&
 	 this.y + this.height / 2 > moveToY &&
 	 !isControlButtons))
 		this.y -= this.speed;
 	if(this.isDown || (moveToY != -1 && 
-		this.y + this.height / 2 < moveToY &&
+	 this.y + this.height / 2 < moveToY &&
 	 !isControlButtons))
 		this.y += this.speed;
 	if(this.isLeft || (moveToX != -1 &&
@@ -269,19 +294,23 @@ Player.prototype.movement = function () {
 	 !isControlButtons))
 		this.x -= this.speed;
 	if(this.isRight || (moveToX != -1 &&
-		this.x + this.width / 2 < moveToX &&
+	 this.x + this.width / 2 < moveToX &&
 	 !isControlButtons))
 		this.x += this.speed;
-	if(((this.isFire || !isControlButtons) && !this.isReload) && time % 20 == 0){
+	if(((this.isFire || !isControlButtons) && 
+	 !this.isReload) && time % 20 == 0)
+	{
 		bullets[bullets.length] = new Bullet();
 		this.ammo--;
 	}
 }
 
-Player.prototype.reload = function () {
+Player.prototype.reload = function()
+{
 	this.isReload = true;
 	this.reloadTime--;
-	if(this.reloadTime == 0){
+	if(this.reloadTime == 0)
+	{
 		this.ammo = 15;
 		this.reloadTime = 180;
 		this.isReload = false;
@@ -290,7 +319,8 @@ Player.prototype.reload = function () {
 
 }
 
-Player.prototype.destroy = function () {
+Player.prototype.destroy = function()
+{
 	timeDeath = time;
 	timeMoment = time;
 	isLose = true;
@@ -301,7 +331,9 @@ Player.prototype.destroy = function () {
 
 
 
-function Bullet () {
+// Класс Bullet
+function Bullet()
+{
 	this.width = 30;
 	this.height = 10;
 	this.x = player.x + player.width;
@@ -309,61 +341,74 @@ function Bullet () {
 	this.speed = 15;
 }
 
-Bullet.prototype.draw = function () {
+Bullet.prototype.draw = function()
+{
 	context.fillStyle = '#FFFF00';
 	context.fillRect(this.x, this.y, this.width, this.height);
 }
 
-Bullet.prototype.update = function () {
+Bullet.prototype.update = function()
+{
 	this.x += this.speed;
-	if(this.x > gameWidth){
-		this.destroy();
-	}
+	if(this.x > gameWidth) this.destroy();
 	this.checkCollusions();
 }
 
-Bullet.prototype.checkCollusions = function () {
-	for(i in enemies){
+Bullet.prototype.checkCollusions = function()
+{
+	for(i in enemies)
+	{
 		if(this.x + this.width > enemies[i].x &&
-		this.y + this.height > enemies[i].y &&
-		this.x < enemies[i].x + enemies[i].width &&
-		this.y < enemies[i].y + enemies[i].height){
+		 this.y + this.height > enemies[i].y &&
+		 this.x < enemies[i].x + enemies[i].width &&
+		 this.y < enemies[i].y + enemies[i].height)
+		{
 			enemies[i].health--;
 			score += 10;
 			this.destroy();
 			break;
 		}
 	}
-	for(i in obstacles){
+
+	for(i in obstacles)
+	{
 		if(this.x + this.width > obstacles[i].x &&
-		this.y + this.height > obstacles[i].y &&
-		this.x < obstacles[i].x + obstacles[i].width &&
-		this.y < obstacles[i].y + obstacles[i].height){
+		 this.y + this.height > obstacles[i].y &&
+		 this.x < obstacles[i].x + obstacles[i].width &&
+		 this.y < obstacles[i].y + obstacles[i].height)
+		{
 			obstacles[i].health--;
 			score += 5;
 			this.destroy();
 			break;
 		}
 	}
-	if(isBoss){
+
+	if(isBoss)
+	{
 		if(this.x + this.width > boss.x &&
-		this.y + this.height > boss.y &&
-		this.x < boss.x + boss.width &&
-		this.y < boss.y + boss.height){
+		 this.y + this.height > boss.y &&
+		 this.x < boss.x + boss.width &&
+		 this.y < boss.y + boss.height)
+		{
 			boss.health--;
 			score += 5;
 			this.destroy();
 		}
 	}
+
 }
 
-Bullet.prototype.destroy = function () {
+Bullet.prototype.destroy = function()
+{
 	bullets.splice(bullets.indexOf(this), 1);
 }
 
 
+
 // Класс Enemy
-function Enemy() {
+function Enemy()
+{
 	this.width = 100;
 	this.height = 60;
 	this.x = gameWidth + this.width + Math.random() * this.width * k;
@@ -372,18 +417,20 @@ function Enemy() {
 	this.health = 3;
 }
 
-Enemy.prototype.draw = function () {
-	context.drawImage (imgEnemy, this.x, this.y, this.width, this.height);
+Enemy.prototype.draw = function()
+{
+	context.drawImage(imgEnemy, this.x, this.y, this.width, this.height);
 }
 
-Enemy.prototype.update = function () {
+Enemy.prototype.update = function()
+{
 	this.x -= this.speed;
-	if(this.x + this.width < 0 || this.health == 0){
+	if(this.x + this.width < 0 || this.health == 0)
 		this.destroy();
-	}
 }
 
-Enemy.prototype.destroy = function () {
+Enemy.prototype.destroy = function()
+{
 	timeDeath = time;
 	explodeX = this.x;
 	explodeY = this.y;
@@ -391,8 +438,9 @@ Enemy.prototype.destroy = function () {
 }
 
 
-
-function Boss() {
+// Класс Boss
+function Boss()
+{
 	this.width = 300;
 	this.height = 500;
 	this.x = gameWidth;
@@ -402,25 +450,28 @@ function Boss() {
 	this.health = 30;
 }
 
-Boss.prototype.draw = function () {
-	context.drawImage (imgBoss, this.x, this.y, this.width, this.height);
+Boss.prototype.draw = function()
+{
+	context.drawImage(imgBoss, this.x, this.y, this.width, this.height);
 	context.fillStyle = '#FF0000';
-	for(var i = 0; i < this.health; i++){
+	for(var i = 0; i < this.health; i++)
 		context.fillRect(10 + 30*i, gameHeight - 35, 30, 30);
-	}
 }
 
-Boss.prototype.update = function () {
-	if(this.x > gameWidth / 4 * 3) this.x -= this.speedX;
+Boss.prototype.update = function()
+{
+	if(this.x > gameWidth / 4 * 3)
+		this.x -= this.speedX;
 	this.y += this.speedY;
-	if(this.y < 0 || this.y > gameHeight - this.height) this.speedY = -this.speedY;
-	if(time % 30 == 0) bossBullets[bossBullets.length] = new BossBullet ();
-	if(this.health == 0){
-		this.destroy();
-	}
+	if(this.y < 0 || this.y > gameHeight - this.height)
+		this.speedY = -this.speedY;
+	if(time % 30 == 0)
+		bossBullets[bossBullets.length] = new BossBullet();
+	if(this.health == 0) this.destroy();
 }
 
-Boss.prototype.destroy = function () {
+Boss.prototype.destroy = function()
+{
 	timeDeath = time;
 	timeMoment = time;
 	explodeX = this.x;
@@ -431,8 +482,9 @@ Boss.prototype.destroy = function () {
 
 
 
-
-function BossBullet () {
+// Класс BossBullet
+function BossBullet()
+{
 	this.width = 30;
 	this.height = 10;
 	this.x = boss.x;
@@ -440,40 +492,44 @@ function BossBullet () {
 	this.speed = 10;
 }
 
-BossBullet.prototype.draw = function () {
+BossBullet.prototype.draw = function()
+{
 	context.fillStyle = '#FF053F';
 	context.fillRect(this.x, this.y, this.width, this.height);
 }
 
-BossBullet.prototype.update = function () {
+BossBullet.prototype.update = function()
+{
 	this.x -= this.speed;
 	this.checkCollusions();
-	if(this.x > gameWidth){
+	if(this.x > gameWidth) this.destroy();
+}
+
+BossBullet.prototype.checkCollusions = function()
+{
+	if(this.x + this.width > player.x &&
+	 this.y + this.height > player.y &&
+	 this.x < player.x + player.width &&
+	 this.y < player.y + player.height &&
+	 !player.isInvulnerable)
+	{
+		player.health--;
+		player.isInvulnerable = true;
+		player.invulnerableTime = 300;
 		this.destroy();
 	}
 }
 
-BossBullet.prototype.checkCollusions = function () {
-	if(this.x + this.width > player.x &&
-		this.y + this.height > player.y &&
-		this.x < player.x + player.width &&
-		this.y < player.y + player.height &&
-		!player.isInvulnerable){
-			player.health--;
-			player.isInvulnerable = true;
-			player.invulnerableTime = 300;
-			this.destroy();
-	}
-}
-
-BossBullet.prototype.destroy = function () {
+BossBullet.prototype.destroy = function()
+{
 	bossBullets.splice(bossBullets.indexOf(this), 1);
 }
 
 
 
 // Класс Obstacle
-function Obstacle() {
+function Obstacle()
+{
 	this.width = 100;
 	this.height = 100;
 	this.x = gameWidth + this.width + Math.random() * this.width * k / 2;
@@ -482,18 +538,20 @@ function Obstacle() {
 	this.health = 5;
 }
 
-Obstacle.prototype.draw = function () {
+Obstacle.prototype.draw = function()
+{
 	context.drawImage (imgObstacle, this.x, this.y, this.width, this.height);
 }
 
-Obstacle.prototype.update = function () {
+Obstacle.prototype.update = function()
+{
 	this.x -= this.speed;
-	if(this.x + this.width < 0 || this.health == 0){
+	if(this.x + this.width < 0 || this.health == 0)
 		this.destroy();
-	}
 }
 
-Obstacle.prototype.destroy = function () {
+Obstacle.prototype.destroy = function()
+{
 	timeDeath = time;
 	explodeX = this.x;
 	explodeY = this.y;
@@ -502,20 +560,23 @@ Obstacle.prototype.destroy = function () {
 
 
 
-function checkClick(e){
+// Проверка клика
+function checkClick(e)
+{
 	if(e.pageX - canvas.offsetLeft >= gameWidth - 60 &&
 	 	e.pageX - canvas.offsetLeft <= gameWidth - 10 &&
 		e.pageY - canvas.offsetTop >= 10 &&
-		e.pageY - canvas.offsetTop <= 46){
-		if(isPlaying)
-			stopLoop();
-		else
-			isPlaying = true;
+		e.pageY - canvas.offsetTop <= 46)
+	{
+		if(isPlaying) stopLoop();
+		else isPlaying = true;
 	}
+
 	if(isMenu && e.pageX - canvas.offsetLeft >= gameWidth / 6 &&
-	 	e.pageX - canvas.offsetLeft <= gameWidth / 6 + 300 &&
-		e.pageY - canvas.offsetTop >= gameHeight / 2 &&
-		e.pageY - canvas.offsetTop <= gameHeight / 2 + 100){
+	 e.pageX - canvas.offsetLeft <= gameWidth / 6 + 300 &&
+	 e.pageY - canvas.offsetTop >= gameHeight / 2 &&
+	 e.pageY - canvas.offsetTop <= gameHeight / 2 + 100)
+	{
 		document.addEventListener("keydown", checkKeyDown);
 		document.addEventListener("keyup", checkKeyUp);
 		isControlButtons = true;
@@ -530,9 +591,10 @@ function checkClick(e){
 	}
 
 	if(isMenu && e.pageX - canvas.offsetLeft >= gameWidth / 2 &&
-	 	e.pageX - canvas.offsetLeft <= gameWidth / 2 + 300 &&
-		e.pageY - canvas.offsetTop >= gameHeight / 2 &&
-		e.pageY - canvas.offsetTop <= gameHeight / 2 + 100){
+	 e.pageX - canvas.offsetLeft <= gameWidth / 2 + 300 &&
+	 e.pageY - canvas.offsetTop >= gameHeight / 2 &&
+	 e.pageY - canvas.offsetTop <= gameHeight / 2 + 100)
+	{
 		isControlButtons = false;
 		isMenu = false;
 		isLose = false;
@@ -543,20 +605,28 @@ function checkClick(e){
 		isPlaying = true;
 		player = new Player();
 	}
-		if(!isControlButtons){
+
+	if(!isControlButtons)
+	{
 		moveToX = e.pageX - canvas.offsetLeft;
 		moveToY = e.pageY - canvas.offsetTop;
-		if(e.pageX - canvas.offsetLeft < 0) moveToX = 0;
-		if(e.pageY - canvas.offsetTop < 0) moveToY = 0;
+		if(e.pageX - canvas.offsetLeft < 0)
+			moveToX = 0;
+		if(e.pageY - canvas.offsetTop < 0)
+			moveToY = 0;
 		if(e.pageX - canvas.offsetLeft > gameWidth / 2 )
 			moveToX = gameWidth / 2;
-		if(e.pageY - canvas.offsetTop> gameHeight - player.height)
+		if(e.pageY - canvas.offsetTop > gameHeight - player.height)
 			moveToY = gameHeight - player.height;
 	}
 }
 
-function checkKeyDown (e) {
-	switch(e.code){
+
+// проверка нажатий клваиш
+function checkKeyDown(e) 
+{
+	switch(e.code)
+	{
 		case 'KeyW':
 		case 'ArrowUp':
 			player.isUp = true;
@@ -587,8 +657,10 @@ function checkKeyDown (e) {
 	}
 }
 
-function checkKeyUp (e) {
-	switch(e.code){
+function checkKeyUp(e)
+{
+	switch(e.code)
+	{
 		case 'KeyW':
 		case 'ArrowUp':
 			player.isUp = false;
@@ -619,52 +691,62 @@ function checkKeyUp (e) {
 	}
 }
 
-function clear() {
+
+// рисовки
+function clear()
+{
 	context.clearRect(0, 0, gameWidth, gameHeight);
 }
 
-function drawExplosion () {
+function drawExplosion()
+{
 	if(isBoss)
 		context.drawImage(imgExplosion, explodeX, explodeY, 400, 400);
 	else
 		context.drawImage(imgExplosion, explodeX, explodeY, 100, 100);
 }
 
-function drawAmmo () {
+function drawAmmo()
+{
 	context.fillStyle = "#FFFFFF";
 	context.font = "bold 24pt Arial";
 	context.textBaseline = "top";
 	context.fillText(player.ammo, 10, 48);
 }
 
-function drawReload () {
+function drawReload()
+{
 	context.fillStyle = "#FFFFFF";
 	context.font = "bold 24pt Arial";
 	context.textBaseline = "top";
 	context.fillText("Reloading...", 10, 48);
 }
 
-function drawScore () {
+function drawScore()
+{
 	context.fillStyle = "#00F";
 	context.font = "italic 36pt Arial";
 	context.textBaseline = "top";
 	context.fillText("Score: " + score, gameWidth / 2, 10);
 }
 
-function drawPause () {
+function drawPause()
+{
 	context.fillStyle = '#FFFFFF';
 	context.fillRect(gameWidth - 60, 10, 20, 36);
 	context.fillRect(gameWidth - 30, 10, 20, 36);
 }
 
-function drawPauseText () {
+function drawPauseText()
+{
 	context.fillStyle = "#FFFFFF";
 	context.font = "bold 128pt Arial";
 	context.textBaseline = "top";
 	context.fillText("Pause", gameWidth / 4, gameHeight / 3);
 }
 
-function drawMenu () {
+function drawMenu()
+{
 	context.fillStyle = '#808080';
 	context.fillRect(gameWidth / 10, gameHeight / 10, gameWidth / 10 * 8, gameHeight / 10 * 8);
 	context.fillStyle = "#FFFFFF";
@@ -680,21 +762,24 @@ function drawMenu () {
 	context.fillText("Clicks", gameWidth / 2 + 20, gameHeight / 2 + 15);
 }
 
-function drawLose () {
+function drawLose()
+{
 	context.fillStyle = "#FFFFFF";
 	context.font = "bold 128pt Arial";
 	context.textBaseline = "top";
 	context.fillText("You lose", gameWidth / 4, gameHeight / 3);
 }
 
-function drawWin () {
+function drawWin()
+{
 	context.fillStyle = "#FFFFFF";
 	context.font = "bold 128pt Arial";
 	context.textBaseline = "top";
 	context.fillText("You win", gameWidth / 4, gameHeight / 3);
 }
 
-function drawBackground() {
+function drawBackground()
+{
 	clear();
 	context.drawImage(background, 0, 0, gameWidth, gameHeight);
 }
