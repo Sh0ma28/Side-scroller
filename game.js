@@ -39,11 +39,13 @@ var background = new Image ();
 background.src = "img/background.png";
 
 var player;
+var boss;
 var enemies = [];
 var obstacles = [];
 var bullets = [];
+var bossBullets = [];
 
-var isPlaying;
+var isPlaying = false;
 var isMenu = true;
 var isControlButtons;
 
@@ -51,7 +53,6 @@ var moveToX = -1;
 var moveToY = -1;
 
 var isBoss = false;
-var bossExist = false;
 
 var k = 10;
 var score = 0;
@@ -59,7 +60,7 @@ var time = 0;
 
 var isWin = false;
 var isLose = false;
-var loseWinTime = -1;
+var timeMoment = -1;
 
 var timeDeath;
 var explodeX;
@@ -81,7 +82,7 @@ function init() {
 	document.addEventListener("click", checkClick);
 
 	drawMenu();
-	startLoop();
+	loop();
 }
 
 function spawnCreatures (enemiesCount, obstaclesCount) {
@@ -98,11 +99,11 @@ function spawnCreatures (enemiesCount, obstaclesCount) {
 
 function loop() {
 	if(isPlaying && !isMenu){
-		if(!bossExist) spawnCreatures(1 + Math.random() * spawnEnemiesAmout, 1 + Math.random() * spawnObstaclesAmout);
+		if(!isBoss) spawnCreatures(1 + Math.random() * spawnEnemiesAmout, 1 + Math.random() * spawnObstaclesAmout);
 		draw();
 		update();
 	}
-	if((isLose || isWin) && time > loseWinTime + 180){
+	if((isLose || isWin) && time > timeMoment + 180){
 		drawMenu();
 		enemies = [];
 		obstacles = [];
@@ -113,11 +114,6 @@ function loop() {
 	requestAnimFrame(loop);
 }
 
-function startLoop() {
-	isPlaying = true;
-	loop();
-}
-
 function stopLoop() {
 	isPlaying = false;
 	drawPauseText();
@@ -126,33 +122,43 @@ function stopLoop() {
 function draw() {
 	drawBackground();
 	drawPause();
+	if(player.isReload) drawReload();
+	else drawAmmo();
 
 	player.draw();
+	if(isBoss && !isWin){
+		boss.draw();
+		for (i in bossBullets) bossBullets[i].draw();
+	}
 	for (i in bullets) bullets[i].draw();
 	for (i in enemies) enemies[i].draw();
 	for (i in obstacles) obstacles[i].draw();
 	if (time < timeDeath + 20) 
 		drawExplosion();
-	if(isLose && time < loseWinTime + 180)
+	if(isLose && time < timeMoment + 180)
 		drawLose();
-	if(isWin && time < loseWinTime + 180)
+	if(isWin && time < timeMoment + 180)
 		drawWin();
 	if (score >= 0) drawScore();
 }
 
 function update() {
 	player.update();
+	if(isBoss && !isWin){
+		boss.update();
+		for (i in bossBullets) bossBullets[i].update();
+	}
 	for (i in bullets) bullets[i].update();
 	for (i in enemies) enemies[i].update();
 	for (i in obstacles) obstacles[i].update();
 	time++;
 	if(time % 60 == 0) score += 10;
-	if(score > 1000) {
+	if(score > 1000 ) {
 		score = -100000;
 		enemies = [];
 		obstacles = [];
-		bossExist = true;
-		enemies[0] = new Boss ()	
+		isBoss = true;
+		boss = new Boss ();	
 	}
 }
 
@@ -160,20 +166,23 @@ function update() {
 
 // Класс Player
 function Player() {
-	this.x = 0;
-	this.y = 250;
 	this.width = 100;
 	this.height = 100;
+
+	this.x = 0;
+	this.y = gameHeight / 2 - this.height;
 
 	// движение
 	this.isUp = false;
 	this.isDown = false;
 	this.isLeft = false;
 	this.isRight = false;
-
 	this.speed = 6;
 
 	this.isFire = false;
+	this.isReload = false;
+	this.reloadTime = 180;
+	this.ammo = 15;
 
 	this.health = 4;
 	this.isInvulnerable = false;
@@ -197,6 +206,9 @@ Player.prototype.update = function () {
 	this.checkCollusions();
 
 	this.movement();
+
+	if(this.ammo == 0) this.reload();
+
 	if(this.health == 0) this.destroy();
 }
 
@@ -260,13 +272,27 @@ Player.prototype.movement = function () {
 		this.x + this.width / 2 < moveToX &&
 	 !isControlButtons))
 		this.x += this.speed;
-	if((this.isFire || !isControlButtons) && time % 20 == 0) 
+	if(((this.isFire || !isControlButtons) && !this.isReload) && time % 20 == 0){
 		bullets[bullets.length] = new Bullet();
+		this.ammo--;
+	}
+}
+
+Player.prototype.reload = function () {
+	this.isReload = true;
+	this.reloadTime--;
+	if(this.reloadTime == 0){
+		this.ammo = 15;
+		this.reloadTime = 180;
+		this.isReload = false;
+		bullets = [];
+	}
+
 }
 
 Player.prototype.destroy = function () {
 	timeDeath = time;
-	loseWinTime = time;
+	timeMoment = time;
 	isLose = true;
 	explodeX = this.x;
 	explodeY = this.y;
@@ -319,6 +345,16 @@ Bullet.prototype.checkCollusions = function () {
 			break;
 		}
 	}
+	if(isBoss){
+		if(this.x + this.width > boss.x &&
+		this.y + this.height > boss.y &&
+		this.x < boss.x + boss.width &&
+		this.y < boss.y + boss.height){
+			boss.health--;
+			score += 5;
+			this.destroy();
+		}
+	}
 }
 
 Bullet.prototype.destroy = function () {
@@ -361,7 +397,8 @@ function Boss() {
 	this.height = 500;
 	this.x = gameWidth;
 	this.y = gameHeight / 2 - this.height / 2;
-	this.speed = 3;
+	this.speedX = 3;
+	this.speedY = 2;
 	this.health = 30;
 }
 
@@ -374,7 +411,10 @@ Boss.prototype.draw = function () {
 }
 
 Boss.prototype.update = function () {
-	if(this.x > gameWidth / 2) this.x -= this.speed;
+	if(this.x > gameWidth / 4 * 3) this.x -= this.speedX;
+	this.y += this.speedY;
+	if(this.y < 0 || this.y > gameHeight - this.height) this.speedY = -this.speedY;
+	if(time % 30 == 0) bossBullets[bossBullets.length] = new BossBullet ();
 	if(this.health == 0){
 		this.destroy();
 	}
@@ -382,12 +422,52 @@ Boss.prototype.update = function () {
 
 Boss.prototype.destroy = function () {
 	timeDeath = time;
-	loseWinTime = time;
+	timeMoment = time;
 	explodeX = this.x;
 	explodeY = this.y;
-	isBoss = true;
-	enemies.splice(enemies.indexOf(this), 1);
+	bossBullets = [];
 	isWin = true;
+}
+
+
+
+
+function BossBullet () {
+	this.width = 30;
+	this.height = 10;
+	this.x = boss.x;
+	this.y = boss.y + Math.random() * (boss.height - this.height);
+	this.speed = 10;
+}
+
+BossBullet.prototype.draw = function () {
+	context.fillStyle = '#FF053F';
+	context.fillRect(this.x, this.y, this.width, this.height);
+}
+
+BossBullet.prototype.update = function () {
+	this.x -= this.speed;
+	this.checkCollusions();
+	if(this.x > gameWidth){
+		this.destroy();
+	}
+}
+
+BossBullet.prototype.checkCollusions = function () {
+	if(this.x + this.width > player.x &&
+		this.y + this.height > player.y &&
+		this.x < player.x + player.width &&
+		this.y < player.y + player.height &&
+		!player.isInvulnerable){
+			player.health--;
+			player.isInvulnerable = true;
+			player.invulnerableTime = 300;
+			this.destroy();
+	}
+}
+
+BossBullet.prototype.destroy = function () {
+	bossBullets.splice(bossBullets.indexOf(this), 1);
 }
 
 
@@ -548,6 +628,20 @@ function drawExplosion () {
 		context.drawImage(imgExplosion, explodeX, explodeY, 400, 400);
 	else
 		context.drawImage(imgExplosion, explodeX, explodeY, 100, 100);
+}
+
+function drawAmmo () {
+	context.fillStyle = "#FFFFFF";
+	context.font = "bold 24pt Arial";
+	context.textBaseline = "top";
+	context.fillText(player.ammo, 10, 48);
+}
+
+function drawReload () {
+	context.fillStyle = "#FFFFFF";
+	context.font = "bold 24pt Arial";
+	context.textBaseline = "top";
+	context.fillText("Reloading...", 10, 48);
 }
 
 function drawScore () {
